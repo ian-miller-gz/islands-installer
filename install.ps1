@@ -103,7 +103,7 @@ function By-Git([string]$channel) {
     if ($cells[0] -eq $sha) { $tags += $cells[1] -replace '^refs/tags/', '' }
   }
   if (-not $tags) { return '' }
-  return (Sort-Versions $tags)[-1]
+  return @(Sort-Versions $tags)[-1]
 }
 
 function By-Api([string]$channel) {
@@ -116,7 +116,7 @@ function By-Api([string]$channel) {
   $tags = @($all | Where-Object { $_.object.sha -eq $ref.object.sha } |
     ForEach-Object { $_.ref -replace '^refs/tags/', '' })
   if (-not $tags) { return '' }
-  return (Sort-Versions $tags)[-1]
+  return @(Sort-Versions $tags)[-1]
 }
 
 function Resolve-Channel([string]$channel) {
