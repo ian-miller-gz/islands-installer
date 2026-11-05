@@ -4,47 +4,47 @@ BeforeAll {
   $script:Here = $PSScriptRoot
   $script:Install = Join-Path (Split-Path $Here -Parent) 'install.ps1'
   $script:Python = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } else { 'python3' }
-}
 
-BeforeEach {
-  $script:Root = Join-Path ([System.IO.Path]::GetTempPath()) ("islands-test-" + [guid]::NewGuid().ToString('N'))
-  New-Item -ItemType Directory -Path $Root | Out-Null
-  $script:ForgeRoot = Join-Path $Root 'forge'
-  & $Python -I (Join-Path $Here 'forge.py') $ForgeRoot --version 0.4.1 --version 0.4.2 `
-    --stable 0.4.1 --latest 0.4.2 --platform windows-x64 | Out-Null
-  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
-  $listener.Start()
-  $script:Port = $listener.LocalEndpoint.Port
-  $listener.Stop()
-  $script:Server = Start-Process -FilePath $Python -PassThru -NoNewWindow `
-    -ArgumentList @('-I', (Join-Path $Here 'forge.py'), $ForgeRoot, '--serve', "$Port")
-  Start-Sleep -Seconds 2
-  $env:ISLANDS_FORGE = "http://127.0.0.1:$Port"
-  $env:ISLANDS_API = "http://127.0.0.1:$Port/api"
-  $env:ISLANDS_HOME = Join-Path $Root 'Islands'
-  $env:ISLANDS_BIN = Join-Path $Root 'bin'
-  $script:Prefix = $env:ISLANDS_HOME
-}
+  function Run {
+    param([string[]]$Words)
+    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $Install @Words 2>&1
+    return [pscustomobject]@{ Code = $LASTEXITCODE; Text = ($output | Out-String) }
+  }
 
-AfterEach {
-  if ($Server -and -not $Server.HasExited) { Stop-Process -Id $Server.Id -Force }
-  Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
-}
-
-function Run {
-  param([string[]]$Words)
-  $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $Install @Words 2>&1
-  return [pscustomobject]@{ Code = $LASTEXITCODE; Text = ($output | Out-String) }
-}
-
-function Record {
-  $rows = Get-Content (Join-Path $Prefix 'installed.yaml')
-  $record = @{}
-  foreach ($row in $rows) { $key, $value = $row -split ': ', 2; $record[$key] = $value }
-  return $record
+  function Record {
+    $rows = Get-Content (Join-Path $Prefix 'installed.yaml')
+    $record = @{}
+    foreach ($row in $rows) { $key, $value = $row -split ': ', 2; $record[$key] = $value }
+    return $record
+  }
 }
 
 Describe 'install.ps1' {
+  BeforeEach {
+    $script:Root = Join-Path ([System.IO.Path]::GetTempPath()) ("islands-test-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $Root | Out-Null
+    $script:ForgeRoot = Join-Path $Root 'forge'
+    & $Python -I (Join-Path $Here 'forge.py') $ForgeRoot --version 0.4.1 --version 0.4.2 `
+      --stable 0.4.1 --latest 0.4.2 --platform windows-x64 | Out-Null
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+    $listener.Start()
+    $script:Port = $listener.LocalEndpoint.Port
+    $listener.Stop()
+    $script:Server = Start-Process -FilePath $Python -PassThru -NoNewWindow `
+      -ArgumentList @('-I', (Join-Path $Here 'forge.py'), $ForgeRoot, '--serve', "$Port")
+    Start-Sleep -Seconds 2
+    $env:ISLANDS_FORGE = "http://127.0.0.1:$Port"
+    $env:ISLANDS_API = "http://127.0.0.1:$Port/api"
+    $env:ISLANDS_HOME = Join-Path $Root 'Islands'
+    $env:ISLANDS_BIN = Join-Path $Root 'bin'
+    $script:Prefix = $env:ISLANDS_HOME
+  }
+
+  AfterEach {
+    if ($Server -and -not $Server.HasExited) { Stop-Process -Id $Server.Id -Force }
+    Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
+  }
+
   It 'lays the stable prefix' {
     $done = Run @()
     $done.Code | Should -Be 0
