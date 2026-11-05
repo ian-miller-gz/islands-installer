@@ -7,8 +7,12 @@ BeforeAll {
 
   function Run {
     param([string[]]$Words)
+    $kept = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $Install @Words 2>&1
-    return [pscustomobject]@{ Code = $LASTEXITCODE; Text = ($output | Out-String) }
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $kept
+    return [pscustomobject]@{ Code = $code; Text = ($output | Out-String) }
   }
 
   function Record {
@@ -24,15 +28,24 @@ Describe 'install.ps1' {
     $script:Root = Join-Path ([System.IO.Path]::GetTempPath()) ("islands-test-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $Root | Out-Null
     $script:ForgeRoot = Join-Path $Root 'forge'
-    & $Python -I (Join-Path $Here 'forge.py') $ForgeRoot --version 0.4.1 --version 0.4.2 `
-      --stable 0.4.1 --latest 0.4.2 --platform windows-x64 | Out-Null
+    $laid = & $Python -I (Join-Path $Here 'forge.py') $ForgeRoot --version 0.4.1 --version 0.4.2 `
+      --stable 0.4.1 --latest 0.4.2 --platform windows-x64 2>&1
+    Write-Host "forge: $($laid | Out-String)"
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
     $listener.Start()
     $script:Port = $listener.LocalEndpoint.Port
     $listener.Stop()
     $script:Server = Start-Process -FilePath $Python -PassThru -NoNewWindow `
       -ArgumentList @('-I', (Join-Path $Here 'forge.py'), $ForgeRoot, '--serve', "$Port")
-    Start-Sleep -Seconds 2
+    $refs = "http://127.0.0.1:$Port/ian-miller-gz/islands.git/info/refs"
+    $up = $false
+    foreach ($try in 1..20) {
+      Start-Sleep -Milliseconds 500
+      try { Invoke-WebRequest -Uri $refs -UseBasicParsing | Out-Null; $up = $true; break } catch { }
+    }
+    if (-not $up) { throw "forge not served at $refs" }
+    $probe = & git ls-remote "http://127.0.0.1:$Port/ian-miller-gz/islands.git" refs/heads/stable 2>&1
+    Write-Host "ls-remote: $($probe | Out-String) exit $LASTEXITCODE"
     $env:ISLANDS_FORGE = "http://127.0.0.1:$Port"
     $env:ISLANDS_API = "http://127.0.0.1:$Port/api"
     $env:ISLANDS_HOME = Join-Path $Root 'Islands'
@@ -47,7 +60,7 @@ Describe 'install.ps1' {
 
   It 'lays the stable prefix' {
     $done = Run @()
-    $done.Code | Should -Be 0
+    $done.Code | Should -Be 0 -Because $done.Text
     $done.Text.Trim() | Should -Be 'installed 0.4.1'
     Test-Path (Join-Path $Prefix 'build\Island.exe') | Should -BeTrue
     (Record)['version'] | Should -Be '0.4.1'
@@ -77,7 +90,7 @@ Describe 'install.ps1' {
     & $Python -I (Join-Path $Here 'forge.py') $ForgeRoot --version 0.4.1 --version 0.4.2 `
       --stable 0.4.2 --latest 0.4.2 --platform windows-x64 | Out-Null
     $updated = Run @('update')
-    $updated.Code | Should -Be 0
+    $updated.Code | Should -Be 0 -Because $updated.Text
     (Record)['version'] | Should -Be '0.4.2'
     Test-Path (Join-Path $store 'manifest.yaml') | Should -BeTrue
     Test-Path (Join-Path $Prefix 'configs\links.yaml') | Should -BeTrue
@@ -90,7 +103,7 @@ Describe 'install.ps1' {
     Run @('-Version', '0.4.2') | Out-Null
     (Record)['version'] | Should -Be '0.4.2'
     $back = Run @('rollback')
-    $back.Code | Should -Be 0
+    $back.Code | Should -Be 0 -Because $back.Text
     (Record)['version'] | Should -Be '0.4.1'
   }
 
