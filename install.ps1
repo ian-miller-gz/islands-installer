@@ -93,6 +93,7 @@ function Sort-Versions([string[]]$tags) {
 }
 
 function By-Git([string]$channel) {
+  $ErrorActionPreference = 'Continue'
   $url = "$Forge/$Owner/$Engine.git"
   $head = (& git ls-remote $url "refs/heads/$channel" 2>$null)
   if ($LASTEXITCODE -ne 0 -or -not $head) { return $null }
