@@ -81,8 +81,8 @@ release of that name. The installer is at 1.0.0.
 - Windows 10 x64 and later: PowerShell 5.1 or later. Nothing else.
 - The release assets: `islands-X.Y.Z-linux-x64.tar.gz` and
   `islands-X.Y.Z-windows-x64.zip` with their `.sha256` sidecars, per
-  [`docs/assets.md`](docs/assets.md). The Linux tarball is not yet
-  published; until it is, `install.sh` finds no asset and exits 12.
+  [`docs/assets.md`](docs/assets.md); the packages repository's
+  `tools/release.sh --linux --windows` cuts both.
 
 ## Licence
 

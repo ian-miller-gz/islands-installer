@@ -48,19 +48,13 @@ swaps it back and carries the same way.
 
 ## Making the assets
 
-The Windows zip is what the packaging repository already builds
-(`tools/prefix.sh <engine> work/windows/islands windows`, zipped). The
-Linux tarball is the same lay on the posix side:
+The packaging repository's release tool lays both from a built engine
+checkout (the posix build and the windows-ship cell) and puts them on
+the packages release of the version, beside the source tarball:
 
 ```sh
-tools/prefix.sh <engine> work/linux/islands posix
-tar --sort=name --mtime='2000-01-01 00:00Z' --owner=0 --group=0 --numeric-owner \
-  -C work/linux -czf dist/islands-X.Y.Z-linux-x64.tar.gz islands
-sha256sum dist/islands-X.Y.Z-linux-x64.tar.gz > dist/islands-X.Y.Z-linux-x64.tar.gz.sha256
-```
-
-Both go on the packages release of the version, beside the source
-tarball that is there today. A prefix built for one distribution's
+tools/release.sh X.Y.Z --no-build --linux --windows --engine <checkout> --packages <packages checkout>
+``` A prefix built for one distribution's
 libraries runs where those libraries are; the tarball should be built
 on the oldest supported base (the deb's) so the hosts link against the
 lowest glibc.
