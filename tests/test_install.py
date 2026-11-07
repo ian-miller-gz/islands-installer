@@ -253,4 +253,4 @@ def test_usage_refuses_a_channel_with_a_version(home):
   assert run(env, '--channel', 'latest', '--version', '0.4.1').returncode == 2
   assert run(env, '--channel', 'nightly').returncode == 2
   assert run(env, '--bogus').returncode == 2
-  assert run(env, 'version').stdout.strip() == '0.1.1'
+  assert run(env, 'version').stdout.strip() == '1.0.0'

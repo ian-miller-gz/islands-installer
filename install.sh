@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 set -eu
 
-INSTALLER_VERSION=0.1.1
+INSTALLER_VERSION=1.0.0
 FORGE="${ISLANDS_FORGE:-https://github.com}"
 API="${ISLANDS_API:-https://api.github.com}"
 OWNER="${ISLANDS_OWNER:-ian-miller-gz}"
