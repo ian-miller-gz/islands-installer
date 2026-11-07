@@ -232,9 +232,25 @@ def test_a_piped_installer_places_itself_from_its_release(home, served):
   assert (root / 'home' / '.local' / 'bin' / 'islands-installer').is_symlink()
 
 
+def test_run_installs_when_absent_then_starts_the_host(home):
+  root, env = home
+  mark = root / 'mark'
+  env = dict(env, ISLANDS_MARK=str(mark))
+  first = run(env, 'run', '--', '--cartridge', 'x')
+  assert first.returncode == 0, first.stderr
+  assert first.stdout.splitlines()[0] == 'installed 0.4.1'
+  assert first.stdout.splitlines()[1].endswith(' 0.4.1')
+  assert mark.read_text().strip() == '0.4.1'
+  assert not (prefix(root).parent / 'islands.lock').exists()
+  again = run(env, 'run')
+  assert again.returncode == 0, again.stderr
+  assert again.stdout.strip().endswith(' 0.4.1')
+  assert 'installed' not in again.stdout
+
+
 def test_usage_refuses_a_channel_with_a_version(home):
   root, env = home
   assert run(env, '--channel', 'latest', '--version', '0.4.1').returncode == 2
   assert run(env, '--channel', 'nightly').returncode == 2
   assert run(env, '--bogus').returncode == 2
-  assert run(env, 'version').stdout.strip() == '0.1.0'
+  assert run(env, 'version').stdout.strip() == '0.1.1'

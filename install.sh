@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 set -eu
 
-INSTALLER_VERSION=0.1.0
+INSTALLER_VERSION=0.1.1
 FORGE="${ISLANDS_FORGE:-https://github.com}"
 API="${ISLANDS_API:-https://api.github.com}"
 OWNER="${ISLANDS_OWNER:-ian-miller-gz}"
@@ -32,6 +32,7 @@ install.sh [install] [--channel stable|latest] [--version X.Y.Z]
 install.sh update
 install.sh check      exit 0 current, 10 update, 11 none, 12 unreached
 install.sh rollback
+install.sh run [args] install when absent, then start the host
 install.sh version
 USAGE
 }
@@ -41,9 +42,10 @@ fail() { printf 'install.sh: %s\n' "$*" >&2; exit "${2:-1}"; }
 
 case "${1:-}" in
   install|update|check|rollback|version) command="$1"; shift ;;
+  run) command=run; shift; [ "${1:-}" = "--" ] && shift ;;
   -h|--help|help) usage; exit 0 ;;
 esac
-while [ $# -gt 0 ]; do
+while [ "$command" != run ] && [ $# -gt 0 ]; do
   case "$1" in
     --channel) channel="$2"; shift 2 ;;
     --version) version="$2"; shift 2 ;;
@@ -270,6 +272,17 @@ do_install() {
   launch
 }
 
+do_run() {
+  current="$(recorded version)"
+  if [ -z "$current" ]; then
+    lock
+    do_install
+    rm -rf "$prefix.lock" "$work"
+    trap - EXIT INT TERM
+  fi
+  cd "$prefix" && exec "$prefix/${HOSTS%% *}" "$@"
+}
+
 do_rollback() {
   [ -d "$prefix.previous" ] || fail "nothing at $prefix.previous"
   [ -d "$prefix" ] || fail "nothing at $prefix"
@@ -288,4 +301,5 @@ case "$command" in
   check) trap 'rm -rf "$work"' EXIT INT TERM; do_check ;;
   install|update) lock; do_install ;;
   rollback) lock; do_rollback ;;
+  run) do_run "$@" ;;
 esac

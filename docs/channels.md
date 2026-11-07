@@ -19,10 +19,13 @@ The shim for posix channels:
 
 ```sh
 #!/bin/sh
-prefix="${ISLANDS_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/islands}"
-[ -x "$prefix/build/Island" ] || /usr/libexec/islands/install.sh --no-bin
-exec "$prefix/build/Island" "$@"
+exec /usr/libexec/islands/install.sh run -- "$@"
 ```
+
+`run` lays the prefix when it is absent, then starts `build/Island`
+with the arguments given. The Windows shims `islands.cmd` and
+`islands-installer.cmd` ship in the installer's release tarball and
+call `install.ps1` beside them.
 
 The channel package's version is the installer's version, not the
 engine's. The installer's own release carries `install.sh`,

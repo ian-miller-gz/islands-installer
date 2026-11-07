@@ -17,10 +17,16 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           [ "$(sh install.sh version)" = "$tag" ] || { echo "::error::install.sh says $(sh install.sh version), the tag $tag"; exit 1; }
           grep -q "^\$InstallerVersion = '$tag'$" install.ps1 || { echo "::error::install.ps1 does not say $tag"; exit 1; }
-      - name: sums
-        run: sha256sum install.sh install.ps1 > SHA256SUMS
+      - name: tarball
+        run: |
+          name="islands-installer-$GITHUB_REF_NAME"
+          tar --sort=name --mtime='2000-01-01 00:00Z' --owner=0 --group=0 --numeric-owner \
+            --transform "s|^|$name/|" -czf "$name.tar.gz" \
+            install.sh install.ps1 islands.cmd islands-installer.cmd LICENSE README.md
+          sha256sum install.sh install.ps1 islands.cmd islands-installer.cmd "$name.tar.gz" > SHA256SUMS
       - name: publish
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
             gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" \
-              --notes "The installer $GITHUB_REF_NAME." install.sh install.ps1 SHA256SUMS
+              --notes "The installer $GITHUB_REF_NAME." install.sh install.ps1 islands.cmd islands-installer.cmd \
+              "islands-installer-$GITHUB_REF_NAME.tar.gz" SHA256SUMS

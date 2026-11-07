@@ -45,6 +45,7 @@ islands-installer update             # installed 0.4.19
 islands-installer rollback           # installed 0.4.17
 islands-installer --channel latest   # follow latest from here on
 islands-installer --version 0.4.18   # pin one version, no channel
+islands-installer run                # install when absent, then start
 ```
 
 `--prefix DIR`, `--bin DIR` and `--no-bin` move or drop the seats;
@@ -58,6 +59,7 @@ launcher, swap, start the new one.
 |---|---|
 | `install.sh` | the installer for Linux (POSIX sh, curl or wget, tar, git or python3) |
 | `install.ps1` | the installer for Windows (PowerShell 5.1 and later) |
+| `islands.cmd`, `islands-installer.cmd` | the Windows shims a channel package puts on the path |
 | `docs/assets.md` | the release asset the installer unpacks and what it carries over |
 | `docs/handoff.md` | how the launcher checks, offers and runs an update |
 | `docs/channels.md` | what a channel package ships once the installer carries the line |
@@ -66,10 +68,10 @@ launcher, swap, start the new one.
 ## Releases
 
 The installer's own releases are tags `X.Y.Z` on `main`; each carries
-`install.sh`, `install.ps1` and a `SHA256SUMS`. The engine's lines are
+the scripts, the shims, a tarball of them and a `SHA256SUMS`. The engine's lines are
 the engine repository's `stable` and `latest` branches, tagged `X.Y.Z`
 at the tip; the asset of a version lies on the packages repository's
-release of that name. The installer is at 0.1.0.
+release of that name. The installer is at 0.1.1.
 
 ## Requirements
 

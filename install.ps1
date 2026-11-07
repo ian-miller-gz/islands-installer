@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Position = 0)]
-  [ValidateSet('install', 'update', 'check', 'rollback', 'version')]
+  [ValidateSet('install', 'update', 'check', 'rollback', 'run', 'version')]
   [string]$Command = 'install',
   [ValidateSet('', 'stable', 'latest')]
   [string]$Channel = '',
@@ -12,14 +12,16 @@ param(
   [switch]$NoBin,
   [int]$Wait = 0,
   [switch]$Restart,
-  [switch]$Force
+  [switch]$Force,
+  [Parameter(ValueFromRemainingArguments = $true)]
+  [string[]]$Rest = @()
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$InstallerVersion = '0.1.0'
+$InstallerVersion = '0.1.1'
 $Forge = if ($env:ISLANDS_FORGE) { $env:ISLANDS_FORGE } else { 'https://github.com' }
 $Api = if ($env:ISLANDS_API) { $env:ISLANDS_API } else { 'https://api.github.com' }
 $Owner = if ($env:ISLANDS_OWNER) { $env:ISLANDS_OWNER } else { 'ian-miller-gz' }
@@ -263,6 +265,7 @@ function Do-Install {
   if ($Version -eq $current -and -not $Force) {
     Say "up to date $current"
     Launch
+    if ($Command -eq 'run') { return }
     Finish
     exit 0
   }
@@ -274,6 +277,20 @@ function Do-Install {
   Place
   Say "installed $Version"
   Launch
+}
+
+function Do-Run {
+  if (-not (Recorded 'version')) {
+    Take-Lock
+    Do-Install
+    Finish
+  }
+  $island = Host-Of $Prefix $Islands
+  if ($Rest.Count -gt 0) {
+    Start-Process -FilePath $island -WorkingDirectory $Prefix -ArgumentList $Rest | Out-Null
+  } else {
+    Start-Process -FilePath $island -WorkingDirectory $Prefix | Out-Null
+  }
 }
 
 function Do-Rollback {
@@ -295,6 +312,7 @@ New-Item -ItemType Directory -Path $Work | Out-Null
 try {
   switch ($Command) {
     'check' { Do-Check }
+    'run' { Do-Run }
     'rollback' { Take-Lock; Do-Rollback }
     default { Take-Lock; Do-Install }
   }
