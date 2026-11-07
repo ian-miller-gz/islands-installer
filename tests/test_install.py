@@ -261,6 +261,10 @@ def test_the_seated_copy_addresses_its_own_prefix(home, tmp_path):
   moved = subprocess.run(['sh', str(seated), '--version', '0.4.2'], env=bare, text=True, capture_output=True)
   assert moved.returncode == 0, moved.stderr
   assert (elsewhere / 'installed.yaml').read_text().splitlines()[0] == 'version: 0.4.2'
+  relative = subprocess.run(['sh', 'installer/install.sh', 'check'], cwd=elsewhere, env=bare,
+                            text=True, capture_output=True)
+  assert relative.returncode == 10, relative.stderr
+  assert relative.stdout == 'installed 0.4.2\nstable 0.4.1\n'
 
 
 def test_run_refreshes_an_older_seated_installer(home):
@@ -269,11 +273,11 @@ def test_run_refreshes_an_older_seated_installer(home):
   seat = prefix(root) / 'installer' / 'install.sh'
   seat.write_text('#!/bin/sh\necho old\n')
   record = prefix(root) / 'installed.yaml'
-  record.write_text(record.read_text().replace('installer: 1.0.1', 'installer: 0.9.0'))
+  record.write_text(record.read_text().replace('installer: 1.0.2', 'installer: 0.9.0'))
   again = run(env, 'run')
   assert again.returncode == 0, again.stderr
   assert seat.read_text() == INSTALL.read_text()
-  assert 'installer: 1.0.1' in record.read_text()
+  assert 'installer: 1.0.2' in record.read_text()
 
 
 def test_usage_refuses_a_channel_with_a_version(home):
@@ -281,4 +285,4 @@ def test_usage_refuses_a_channel_with_a_version(home):
   assert run(env, '--channel', 'latest', '--version', '0.4.1').returncode == 2
   assert run(env, '--channel', 'nightly').returncode == 2
   assert run(env, '--bogus').returncode == 2
-  assert run(env, 'version').stdout.strip() == '1.0.1'
+  assert run(env, 'version').stdout.strip() == '1.0.2'

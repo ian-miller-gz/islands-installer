@@ -71,7 +71,7 @@ The installer's own releases are tags `X.Y.Z` on `main`; each carries
 the scripts, the shims, a tarball of them and a `SHA256SUMS`. The engine's lines are
 the engine repository's `stable` and `latest` branches, tagged `X.Y.Z`
 at the tip; the asset of a version lies on the packages repository's
-release of that name. The installer is at 1.0.1.
+release of that name. The installer is at 1.0.2.
 
 ## Requirements
 

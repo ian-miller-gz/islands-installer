@@ -127,6 +127,6 @@ Describe 'install.ps1' {
 
   It 'refuses a channel with a version' {
     (Run @('-Channel', 'latest', '-Version', '0.4.1')).Code | Should -Be 2
-    (Run @('version')).Text.Trim() | Should -Be '1.0.1'
+    (Run @('version')).Text.Trim() | Should -Be '1.0.2'
   }
 }

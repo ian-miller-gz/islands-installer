@@ -21,7 +21,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$InstallerVersion = '1.0.1'
+$InstallerVersion = '1.0.2'
 $Forge = if ($env:ISLANDS_FORGE) { $env:ISLANDS_FORGE } else { 'https://github.com' }
 $Api = if ($env:ISLANDS_API) { $env:ISLANDS_API } else { 'https://api.github.com' }
 $Owner = if ($env:ISLANDS_OWNER) { $env:ISLANDS_OWNER } else { 'ian-miller-gz' }

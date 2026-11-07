@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 set -eu
 
-INSTALLER_VERSION=1.0.1
+INSTALLER_VERSION=1.0.2
 FORGE="${ISLANDS_FORGE:-https://github.com}"
 API="${ISLANDS_API:-https://api.github.com}"
 OWNER="${ISLANDS_OWNER:-ian-miller-gz}"
@@ -21,7 +21,7 @@ channel=
 version=
 prefix="${ISLANDS_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/islands}"
 case "$0" in
-  */installer/install.sh)
+  installer/install.sh|*/installer/install.sh)
     seated="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
     [ -n "$seated" ] && [ -f "$seated/$RECORD" ] && prefix="$seated" ;;
 esac
