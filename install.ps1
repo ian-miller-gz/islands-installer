@@ -21,7 +21,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$InstallerVersion = '1.0.0'
+$InstallerVersion = '1.0.1'
 $Forge = if ($env:ISLANDS_FORGE) { $env:ISLANDS_FORGE } else { 'https://github.com' }
 $Api = if ($env:ISLANDS_API) { $env:ISLANDS_API } else { 'https://api.github.com' }
 $Owner = if ($env:ISLANDS_OWNER) { $env:ISLANDS_OWNER } else { 'ian-miller-gz' }
@@ -38,6 +38,10 @@ $Record = 'installed.yaml'
 
 if (-not $Prefix) {
   $Prefix = if ($env:ISLANDS_HOME) { $env:ISLANDS_HOME } else { Join-Path $env:LOCALAPPDATA 'Islands' }
+  if ($PSCommandPath -and (Split-Path (Split-Path $PSCommandPath -Parent) -Leaf) -eq 'installer') {
+    $seated = Split-Path (Split-Path $PSCommandPath -Parent) -Parent
+    if (Test-Path (Join-Path $seated $Record)) { $Prefix = $seated }
+  }
 }
 if ($NoBin) { $Bin = '' }
 elseif (-not $Bin) {
@@ -217,8 +221,9 @@ function Place {
   $seat = Join-Path $Prefix 'installer'
   if (-not (Test-Path $seat)) { New-Item -ItemType Directory -Path $seat | Out-Null }
   $self = Join-Path $seat 'install.ps1'
-  if ($PSCommandPath -and (Test-Path $PSCommandPath)) {
-    Copy-Item -Path $PSCommandPath -Destination $self -Force
+  $kept = Join-Path $Work 'self.ps1'
+  if (Test-Path $kept) {
+    Copy-Item -Path $kept -Destination $self -Force
   } elseif (-not (Fetch "$Forge/$Owner/$Installer/releases/latest/download/install.ps1" $self)) {
     Remove-Item -Force $self -ErrorAction SilentlyContinue
     Say 'installer not placed'
@@ -284,6 +289,11 @@ function Do-Run {
     Take-Lock
     Do-Install
     Finish
+  } elseif ((Recorded 'installer') -ne $InstallerVersion) {
+    Place
+    $path = Join-Path $Prefix $Record
+    $text = (Get-Content $path) -replace '^installer: .*', "installer: $InstallerVersion"
+    [System.IO.File]::WriteAllText($path, (($text -join "`n") + "`n"))
   }
   $island = Host-Of $Prefix $Islands
   if ($Rest.Count -gt 0) {
@@ -309,6 +319,7 @@ function Do-Rollback {
 
 $Work = Join-Path ([System.IO.Path]::GetTempPath()) ("islands-installer-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $Work | Out-Null
+if ($PSCommandPath -and (Test-Path $PSCommandPath)) { Copy-Item -Path $PSCommandPath -Destination (Join-Path $Work 'self.ps1') }
 try {
   switch ($Command) {
     'check' { Do-Check }

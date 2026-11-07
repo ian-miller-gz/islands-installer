@@ -248,9 +248,37 @@ def test_run_installs_when_absent_then_starts_the_host(home):
   assert 'installed' not in again.stdout
 
 
+def test_the_seated_copy_addresses_its_own_prefix(home, tmp_path):
+  root, env = home
+  elsewhere = tmp_path / 'elsewhere' / 'islands'
+  run(dict(env, ISLANDS_HOME=str(elsewhere)), check=True)
+  seated = elsewhere / 'installer' / 'install.sh'
+  bare = {k: v for k, v in env.items() if k != 'ISLANDS_HOME'}
+  found = subprocess.run(['sh', str(seated), 'check'], env=bare, text=True, capture_output=True)
+  assert found.returncode == 0, found.stderr
+  assert found.stdout == 'installed 0.4.1\nstable 0.4.1\n'
+  assert not prefix(root).exists()
+  moved = subprocess.run(['sh', str(seated), '--version', '0.4.2'], env=bare, text=True, capture_output=True)
+  assert moved.returncode == 0, moved.stderr
+  assert (elsewhere / 'installed.yaml').read_text().splitlines()[0] == 'version: 0.4.2'
+
+
+def test_run_refreshes_an_older_seated_installer(home):
+  root, env = home
+  run(env, check=True)
+  seat = prefix(root) / 'installer' / 'install.sh'
+  seat.write_text('#!/bin/sh\necho old\n')
+  record = prefix(root) / 'installed.yaml'
+  record.write_text(record.read_text().replace('installer: 1.0.1', 'installer: 0.9.0'))
+  again = run(env, 'run')
+  assert again.returncode == 0, again.stderr
+  assert seat.read_text() == INSTALL.read_text()
+  assert 'installer: 1.0.1' in record.read_text()
+
+
 def test_usage_refuses_a_channel_with_a_version(home):
   root, env = home
   assert run(env, '--channel', 'latest', '--version', '0.4.1').returncode == 2
   assert run(env, '--channel', 'nightly').returncode == 2
   assert run(env, '--bogus').returncode == 2
-  assert run(env, 'version').stdout.strip() == '1.0.0'
+  assert run(env, 'version').stdout.strip() == '1.0.1'

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 set -eu
 
-INSTALLER_VERSION=1.0.0
+INSTALLER_VERSION=1.0.1
 FORGE="${ISLANDS_FORGE:-https://github.com}"
 API="${ISLANDS_API:-https://api.github.com}"
 OWNER="${ISLANDS_OWNER:-ian-miller-gz}"
@@ -20,6 +20,11 @@ command=install
 channel=
 version=
 prefix="${ISLANDS_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/islands}"
+case "$0" in
+  */installer/install.sh)
+    seated="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
+    [ -n "$seated" ] && [ -f "$seated/$RECORD" ] && prefix="$seated" ;;
+esac
 bin="${ISLANDS_BIN:-$HOME/.local/bin}"
 wait_pid=
 restart=0
@@ -219,10 +224,11 @@ self_url() { say "$FORGE/$OWNER/$INSTALLER/releases/latest/download/install.sh";
 place() {
   seat="$prefix/installer/install.sh"
   mkdir -p "$prefix/installer"
-  case "$0" in
-    *install.sh) [ -f "$0" ] && cp "$0" "$seat" ;;
-    *) fetch "$(self_url)" "$seat" || { rm -f "$seat"; say "installer not placed"; } ;;
-  esac
+  if [ -f "$work/self.sh" ]; then
+    cp "$work/self.sh" "$seat"
+  else
+    fetch "$(self_url)" "$seat" || { rm -f "$seat"; say "installer not placed"; }
+  fi
   [ -f "$seat" ] && chmod 755 "$seat"
   [ -n "$bin" ] || return 0
   mkdir -p "$bin"
@@ -279,6 +285,9 @@ do_run() {
     do_install
     rm -rf "$prefix.lock" "$work"
     trap - EXIT INT TERM
+  elif [ "$(recorded installer)" != "$INSTALLER_VERSION" ]; then
+    place
+    sed -i "s/^installer: .*/installer: $INSTALLER_VERSION/" "$prefix/$RECORD"
   fi
   cd "$prefix" && exec "$prefix/${HOSTS%% *}" "$@"
 }
@@ -297,6 +306,7 @@ do_rollback() {
 }
 
 work="$(mktemp -d)"
+case "$0" in *install.sh) [ -f "$0" ] && cp "$0" "$work/self.sh" ;; esac
 case "$command" in
   check) trap 'rm -rf "$work"' EXIT INT TERM; do_check ;;
   install|update) lock; do_install ;;
